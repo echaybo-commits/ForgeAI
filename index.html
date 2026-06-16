@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>FORGE AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── RESET ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── DESIGN TOKENS ── */
+  :root {
+    --bg:         #09090b;
+    --surface:    #18181b;
+    --surface2:   #1f1f23;
+    --border:     rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.13);
+    --pink:       #f72585;
+    --pink-dim:   rgba(247,37,133,0.18);
+    --pink-glow:  rgba(247,37,133,0.35);
+    --text:       #fafafa;
+    --text-mid:   #a1a1aa;
+    --text-dim:   #52525b;
+    --radius:     14px;
+    --font:       'Inter', sans-serif;
+    --mono:       'JetBrains Mono', monospace;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--pink-dim); border-radius: 2px; }
+
+  /* ── TYPOGRAPHY ── */
+  .t-display {
+    font-size: clamp(2rem, 7vw, 3.2rem);
+    font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .t-label {
+    font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--pink);
+  }
+
+  /* ── VIEWS ── */
+  .view {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .view.hidden {
+    opacity: 0; pointer-events: none;
+    transform: translateY(12px);
+  }
+
+  /* ════════════════════════════════════════
+     DASHBOARD
+  ════════════════════════════════════════ */
+  #dashboard { overflow-y: auto; }
+
+  /* Top bar */
+  #topbar {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 56px;
+    background: rgba(9,9,11,0.9);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    flex-shrink: 0;
+  }
+  .logo {
+    font-size: 1.05rem; font-weight: 800;
+    letter-spacing: -0.02em; color: var(--text);
+  }
+  .logo em { color: var(--pink); font-style: normal; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .18s; color: var(--text-mid);
+  }
+  .icon-btn:hover { border-color: var(--border-bright); color: var(--text); }
+
+  .avatar-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #f72585, #7209b7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800; cursor: pointer;
+    border: 2px solid rgba(247,37,133,0.4);
+    transition: all .18s;
+  }
+  .avatar-btn:hover { border-color: var(--pink); transform: scale(1.05); }
+
+  /* Hero / Prompt section */
+  #hero {
+    padding: 36px 20px 24px;
+    max-width: 680px; margin: 0 auto; width: 100%;
+  }
+  .hero-eyebrow {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .hero-eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(247,37,133,0.4), transparent);
+  }
+
+  .hero-title { color: var(--text); margin-bottom: 6px; }
+  .hero-title .pink { color: var(--pink); }
+  .hero-sub {
+    font-size: 0.9rem; color: var(--text-dim);
+    margin-bottom: 28px; line-height: 1.65;
+    max-width: 420px;
+  }
+
+  /* Prompt box */
+  .prompt-box {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .prompt-box:focus-within {
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px var(--pink-dim), 0 0 28px var(--pink-glow);
+  }
+  #quick-input {
+    display: block; width: 100%;
+    padding: 16px 18px 0;
+    background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--font); font-size: 0.95rem;
+    resize: none; line-height: 1.55; min-height: 52px; max-height: 130px;
+    overflow-y: auto;
+  }
+  #quick-input::placeholder { color: var(--text-dim); }
+  .prompt-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px 10px 18px;
+  }
+  .prompt-hint { font-size: 0.71rem; color: var(--text-dim); }
+
+  .btn-forge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 20px; border-radius: 10px;
+    background: var(--pink); border: none;
+    color: white; font-family: var(--font); font-weight: 700;
+    font-size: 0.85rem; cursor: pointer;
+    transition: all .18s;
+    box-shadow: 0 0 16px var(--pink-glow);
+  }
+  .btn-forge:hover { background: #ff3d94; transform: scale(1.03); box-shadow: 0 0 28px var(--pink-glow); }
+  .btn-forge:active { transform: scale(0.97); }
+  .btn-forge:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Chips */
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 7px;
+    padding: 0 20px 28px;
+    max-width: 680px; margin: 0 auto; width: 100%;
+  }
+  .chip {
+    padding: 6px 13px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 0.76rem; color: var(--text-mid); cursor: pointer;
+    transition: all .18s; white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--pink); color: var(--pink); background: var(--pink-dim); }
+
+  /* Stats */
+  .stats-strip {
+    display: flex; gap: 1px;
+    margin: 0 20px 32px;
+    max-width: 680px; margin-left: auto; margin-right: auto;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; background: var(--border);
+  }
+  .stat {
+    flex: 1; padding: 16px 18px;
+    background: var(--surface);
+  }
+  .stat-val {
+    font-size: 1.5rem; font-weight: 800;
+    letter-spacing: -0.03em; color: var(--pink);
+    font-family: var(--mono);
+  }
+  .stat-key {
+    font-size: 0.68rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+  /* Projects section */
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px 14px;
+    max-width: 680px; margin: 0 auto; width: 100%;
+  }
+  .section-label { font-size: 0.78rem; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  #project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px; padding: 0 20px 100px;
+    max-width: 680px; margin: 0 auto; width: 100%;
+  }
+
+  .proj-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+    cursor: pointer; transition: all .2s; position: relative;
+    overflow: hidden;
+  }
+  .proj-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--pink), transparent);
+    opacity: 0; transition: opacity .2s;
+  }
+  .proj-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+  .proj-card:hover::before { opacity: 1; }
+
+  .proj-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 6px; margin-bottom: 11px;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    background: var(--pink-dim); color: var(--pink); border: 1px solid var(--pink-glow);
+  }
+  .proj-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+  .proj-desc { font-size: 0.76rem; color: var(--text-dim); line-height: 1.55; margin-bottom: 14px; }
+  .proj-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.7rem; color: var(--text-dim);
+  }
+  .btn-sm {
+    padding: 5px 11px; border-radius: 7px; font-size: 0.72rem; font-weight: 600;
+    background: var(--surface2); border: 1px solid var(--border-bright);
+    color: var(--text-mid); cursor: pointer; transition: all .18s; font-family: var(--font);
+  }
+  .btn-sm:hover { border-color: var(--pink); color: var(--pink); }
+
+  .new-card {
+    background: var(--surface); border: 1.5px dashed var(--border-bright);
+    border-radius: var(--radius); padding: 28px 18px;
+    cursor: pointer; transition: all .2s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; min-height: 130px;
+  }
+  .new-card:hover { border-color: var(--pink); background: var(--pink-dim); }
+  .new-icon {
+    width: 40px; height: 40px; border-radius: 11px;
+    background: var(--pink-dim); border: 1px solid var(--pink-glow);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pink); font-size: 1.4rem; font-weight: 300;
+  }
+  .new-card-label { font-size: 0.82rem; font-weight: 600; color: var(--text-mid); }
+  .new-card-sub { font-size: 0.71rem; color: var(--text-dim); text-align: center; }
+
+
+  /* ════════════════════════════════════════
+     WORKSPACE
+  ════════════════════════════════════════ */
+  #workspace { flex-direction: column; }
+
+  /* WS Top bar */
+  #ws-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 14px; height: 52px; flex-shrink: 0;
+    background: rgba(9,9,11,0.95);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 100;
+  }
+  #ws-title {
+    flex: 1; font-size: 0.86rem; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Tabs */
+  #ws-tabs {
+    display: flex; flex-shrink: 0;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 20px; font-size: 0.79rem; font-weight: 500;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap;
+    border-bottom: 2px solid transparent; transition: all .18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--pink); border-bottom-color: var(--pink); }
+
+  /* Body */
+  #ws-body { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+  /* Sidebar */
+  #sidebar {
+    width: 200px; flex-shrink: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; transition: width .25s ease, opacity .25s;
+  }
+  #sidebar.closed { width: 0; opacity: 0; overflow: hidden; border-right: none; }
+  .sidebar-head {
+    padding: 11px 14px 8px;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .file-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 14px; cursor: pointer;
+    font-size: 0.79rem; color: var(--text-mid);
+    border-left: 2px solid transparent; transition: all .15s;
+  }
+  .file-row:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+  .file-row.active { background: var(--pink-dim); color: var(--pink); border-left-color: var(--pink); }
+  .file-sz { margin-left: auto; font-size: 0.63rem; color: var(--text-dim); font-family: var(--mono); }
+
+  /* Main panel */
+  #ws-main {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+
+  /* Chat panel */
+  #chat-panel {
+    flex: 1; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 10px;
+    padding: 14px; padding-bottom: 100px;
+  }
+  #chat-panel.hidden { display: none; }
+
+  .bubble-wrap { display: flex; flex-direction: column; max-width: 88%; }
+  .bubble-wrap.user { align-self: flex-end; align-items: flex-end; }
+  .bubble-wrap.ai   { align-self: flex-start; align-items: flex-start; }
+  .bubble {
+    padding: 10px 14px; border-radius: 13px;
+    font-size: 0.82rem; line-height: 1.65;
+    white-space: pre-wrap;
+  }
+  .bubble-wrap.user .bubble {
+    background: var(--pink); color: #fff;
+    border-bottom-right-radius: 3px;
+  }
+  .bubble-wrap.ai .bubble {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-mid); border-bottom-left-radius: 3px;
+  }
+  .bubble-time { font-size: 0.63rem; color: var(--text-dim); margin-top: 3px; }
+
+  .dots { display: flex; align-items: center; gap: 5px; padding: 11px 14px; }
+  .dots span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim);
+    animation: blink .9s ease-in-out infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: .15s; }
+  .dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink {
+    0%, 60%, 100% { transform: translateY(0); opacity: .6; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Code panel */
+  #code-panel {
+    flex: 1; overflow-y: auto; display: none;
+    padding-bottom: 90px;
+  }
+  #code-panel.visible { display: block; }
+  #code-view {
+    padding: 16px 14px; font-family: var(--mono);
+    font-size: 0.76rem; line-height: 1.75;
+    white-space: pre-wrap; word-break: break-all;
+    color: var(--text-mid); -webkit-user-select: text; user-select: text;
+  }
+  #code-view pre { background: transparent !important; }
+  #code-view code { background: transparent !important; font-family: inherit !important; font-size: inherit !important; }
+
+  /* Preview panel */
+  #preview-panel {
+    flex: 1; overflow: hidden; display: none;
+    flex-direction: column; padding-bottom: 90px;
+  }
+  #preview-panel.visible { display: flex; }
+  #preview-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .url-pill {
+    flex: 1; padding: 5px 11px; border-radius: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: var(--mono);
+    font-size: 0.7rem; outline: none;
+  }
+  .btn-newtab {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 13px; border-radius: 8px;
+    background: var(--pink-dim); border: 1px solid var(--pink-glow);
+    color: var(--pink); font-size: 0.74rem; font-weight: 700;
+    cursor: pointer; transition: all .18s; font-family: var(--font);
+    white-space: nowrap;
+  }
+  .btn-newtab:hover { background: var(--pink); color: white; }
+  #preview-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px; color: var(--text-dim);
+  }
+  #preview-empty .icon { font-size: 2.8rem; }
+  #preview-empty p { font-size: 0.82rem; text-align: center; max-width: 200px; line-height: 1.6; }
+  #preview-frame {
+    flex: 1; border: none; background: white; display: none;
+    width: 100%;
+  }
+
+  /* Progress overlay */
+  #progress-overlay {
+    position: absolute; inset: 0; z-index: 200;
+    background: rgba(9,9,11,0.94);
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    padding: 32px;
+  }
+  #progress-overlay.on { display: flex; }
+  .progress-logo {
+    font-size: 0.9rem; font-weight: 800; letter-spacing: -0.01em;
+    color: var(--pink);
+  }
+  .progress-label {
+    font-family: var(--mono); font-size: 0.78rem;
+    color: var(--text-dim); min-height: 20px; text-align: center;
+  }
+  .progress-track {
+    width: 260px; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.07); overflow: hidden;
+  }
+  #progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, #f72585, #b5179e);
+    box-shadow: 0 0 10px var(--pink-glow);
+    transition: width .4s ease;
+    width: 0%;
+  }
+  #progress-pct {
+    font-family: var(--mono); font-size: 0.88rem;
+    font-weight: 700; color: var(--pink);
+  }
+  .progress-sub {
+    font-size: 0.72rem; color: var(--text-dim); text-align: center; max-width: 240px; line-height: 1.6;
+  }
+
+  /* Bottom chat bar */
+  #chat-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 150;
+    padding: 10px 12px;
+    background: rgba(9,9,11,0.97);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  .bar-inner {
+    display: flex; align-items: flex-end; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 13px; padding: 10px 10px 10px 14px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .bar-inner:focus-within {
+    border-color: var(--pink);
+    box-shadow: 0 0 0 3px var(--pink-dim);
+  }
+  #chat-input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--font); font-size: 0.88rem;
+    resize: none; line-height: 1.5;
+    min-height: 22px; max-height: 120px; overflow-y: auto;
+  }
+  #chat-input::placeholder { color: var(--text-dim); }
+  #send-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--pink); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .18s; flex-shrink: 0;
+    box-shadow: 0 0 12px var(--pink-glow);
+  }
+  #send-btn:hover { transform: scale(1.08); box-shadow: 0 0 22px var(--pink-glow); }
+  #send-btn:active { transform: scale(0.95); }
+  #send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+
+  /* ════════════════════════════════════════
+     MODALS
+  ════════════════════════════════════════ */
+  .overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .22s;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .sheet {
+    width: 100%; max-width: 520px;
+    background: #111113; border-radius: 20px 20px 0 0;
+    border: 1px solid var(--border-bright); border-bottom: none;
+    padding: 22px 20px 36px;
+    transform: translateY(28px); transition: transform .28s cubic-bezier(.16,1,.3,1);
+  }
+  .overlay.open .sheet { transform: translateY(0); }
+  .drag-pill { width: 34px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); margin: 0 auto 20px; }
+  .modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .modal-sub { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 18px; }
+  .field-label { font-size: 0.73rem; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
+  .field {
+    width: 100%; padding: 11px 14px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 0.8rem;
+    outline: none; margin-bottom: 12px; transition: border-color .18s;
+  }
+  .field:focus { border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-dim); }
+  .btn-primary {
+    width: 100%; padding: 13px; border-radius: 11px;
+    background: var(--pink); border: none;
+    color: white; font-weight: 800; font-size: 0.88rem;
+    cursor: pointer; transition: all .18s; font-family: var(--font);
+    box-shadow: 0 0 16px var(--pink-glow);
+  }
+  .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 28px var(--pink-glow); }
+  .btn-secondary {
+    width: 100%; padding: 12px; border-radius: 11px; margin-top: 8px;
+    background: transparent; border: 1px solid var(--border-bright);
+    color: var(--text-mid); font-weight: 600; font-size: 0.85rem;
+    cursor: pointer; font-family: var(--font); transition: all .18s;
+  }
+  .btn-secondary:hover { border-color: var(--text-mid); color: var(--text); }
+
+  .info-box {
+    padding: 11px 13px; border-radius: 10px; margin-bottom: 14px;
+    background: rgba(247,37,133,0.07); border: 1px solid rgba(247,37,133,0.18);
+    font-size: 0.73rem; color: var(--text-dim); line-height: 1.65;
+  }
+  .info-box strong { color: var(--pink); }
+
+  /* Paste modal textarea */
+  #paste-area {
+    width: 100%; height: 160px; padding: 12px 14px; border-radius: 11px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 0.74rem;
+    line-height: 1.6; resize: none; outline: none; margin-bottom: 12px;
+    transition: border-color .18s;
+  }
+  #paste-area:focus { border-color: var(--pink); box-shadow: 0 0 0 3px var(--pink-dim); }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 86px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    z-index: 3000; padding: 9px 18px; border-radius: 10px;
+    font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+    background: rgba(247,37,133,0.15); border: 1px solid var(--pink-glow);
+    color: var(--pink); opacity: 0; transition: all .25s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.ok { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
+
+  /* Connection status pill */
+  #conn-pill {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.68rem; color: var(--text-dim);
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
+  .dot.online { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6); }
+  .dot.offline { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+  .dot.checking { background: #f59e0b; animation: pulse .8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+  @media (max-width: 420px) {
+    #sidebar { width: 170px; }
+    .t-display { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════ -->
+<div id="dashboard" class="view">
+
+  <div id="topbar">
+    <div class="logo">FORGE<em>.</em>AI</div>
+    <div class="topbar-right">
+      <div id="conn-pill">
+        <div class="dot checking" id="conn-dot"></div>
+        <span id="conn-text">Checking...</span>
+      </div>
+      <div class="icon-btn" onclick="openModal('settings-modal')" title="Settings">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <div class="avatar-btn">OU</div>
+    </div>
+  </div>
+
+  <div id="hero">
+    <div class="hero-eyebrow">
+      <span class="t-label">AI Code Generator</span>
+    </div>
+    <h1 class="t-display hero-title">Build.<br><span class="pink">Ship.</span><br>Repeat.</h1>
+    <p class="hero-sub">Describe any app, game, or dashboard — FORGE AI generates production-ready code in seconds.</p>
+
+    <div class="prompt-box">
+      <textarea id="quick-input" rows="1" placeholder="e.g. انشئ تطبيق حاسبة علمية أو Build a 3D space shooter game…"></textarea>
+      <div class="prompt-footer">
+        <span class="prompt-hint">Enter to forge · Shift+Enter for newline</span>
+        <button class="btn-forge" onclick="quickForge()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Forge
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chips">
+    <div class="chip" onclick="chip('Scientific calculator app')">🧮 Calculator</div>
+    <div class="chip" onclick="chip('3D snake game neon')">🎮 3D Snake</div>
+    <div class="chip" onclick="chip('Crypto price dashboard with charts')">📊 Dashboard</div>
+    <div class="chip" onclick="chip('Particle physics sandbox')">✨ Physics</div>
+    <div class="chip" onclick="chip('Animated portfolio landing page')">🎨 Portfolio</div>
+    <div class="chip" onclick="chip('Music visualizer with WebAudio API')">🎵 Visualizer</div>
+  </div>
+
+  <div class="stats-strip" style="margin-bottom:28px;">
+    <div class="stat">
+      <div class="stat-val" id="stat-p">0</div>
+      <div class="stat-key">Projects</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-l">0</div>
+      <div class="stat-key">Lines</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" style="font-size:1.2rem;">∞</div>
+      <div class="stat-key">Ideas</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <span class="section-label">Recent Projects</span>
+  </div>
+
+  <div id="project-grid">
+    <div class="new-card" onclick="focusInput()">
+      <div class="new-icon">+</div>
+      <div class="new-card-label">New Project</div>
+      <div class="new-card-sub">Type an idea above</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     WORKSPACE
+════════════════════════════════════════ -->
+<div id="workspace" class="view hidden">
+
+  <div id="ws-bar">
+    <div class="icon-btn" onclick="goHome()">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </div>
+    <div class="icon-btn" onclick="toggleSidebar()">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </div>
+    <div id="ws-title">New Project</div>
+    <div class="icon-btn" onclick="copyCode()" title="Copy code" style="color:var(--pink)">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    </div>
+  </div>
+
+  <div id="ws-tabs">
+    <div class="tab active" data-tab="chat" onclick="switchTab('chat')">💬 Chat</div>
+    <div class="tab" data-tab="code" onclick="switchTab('code')">⚡ Code</div>
+    <div class="tab" data-tab="preview" onclick="switchTab('preview')">🖥 Preview</div>
+  </div>
+
+  <div id="ws-body">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="sidebar-head">Files</div>
+      <div id="file-list"></div>
+    </div>
+
+    <!-- Main -->
+    <div id="ws-main">
+
+      <!-- Chat -->
+      <div id="chat-panel"></div>
+
+      <!-- Code -->
+      <div id="code-panel">
+        <div id="code-view">
+          <span style="color:var(--text-dim); font-family:var(--font); font-size:0.84rem; display:block; text-align:center; padding-top:60px;">⚡ Generated code appears here.</span>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="preview-panel">
+        <div id="preview-bar">
+          <div style="font-size:.9rem; flex-shrink:0;">🖥</div>
+          <div class="url-pill" id="preview-url">about:blank</div>
+          <button class="btn-newtab" onclick="openTab()">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Open Tab
+          </button>
+        </div>
+        <div id="preview-empty">
+          <div class="icon">🚀</div>
+          <p>Forge something first, then preview it live here.</p>
+        </div>
+        <iframe id="preview-frame"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups allow-presentation">
+        </iframe>
+      </div>
+
+      <!-- Progress overlay -->
+      <div id="progress-overlay">
+        <div class="progress-logo">FORGE AI</div>
+        <div class="progress-label" id="progress-label">Initializing...</div>
+        <div class="progress-track"><div id="progress-fill"></div></div>
+        <div id="progress-pct">0%</div>
+        <div class="progress-sub" id="progress-sub">Connecting to AI engine...</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="chat-bar">
+    <div class="bar-inner">
+      <textarea id="chat-input" rows="1" placeholder="Describe changes or a new build…"></textarea>
+      <button id="send-btn" onclick="send()">
+        <svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     SETTINGS MODAL
+════════════════════════════════════════ -->
+<div id="settings-modal" class="overlay" onclick="closeModal('settings-modal')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="drag-pill"></div>
+    <div class="modal-title">⚙️ Settings</div>
+    <div class="modal-sub">Configure your FORGE AI backend connection.</div>
+
+    <div class="field-label">Backend Server URL</div>
+    <input type="text" class="field" id="server-url" placeholder="http://localhost:3000">
+
+    <div class="info-box">
+      <strong>🖥 Local:</strong> Run <code>node server.js</code> on your machine<br>
+      <strong>☁️ Cloud:</strong> Deploy to Render/Railway and paste the URL here<br>
+      <strong>🔑 Free AI:</strong> Backend uses Groq API (qwen-2.5-coder / llama-3.3)
+    </div>
+
+    <button class="btn-primary" onclick="saveSettings()">Save & Test Connection</button>
+    <button class="btn-secondary" onclick="closeModal('settings-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- PASTE CODE MODAL (fallback) -->
+<div id="paste-modal" class="overlay" onclick="closeModal('paste-modal')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="drag-pill"></div>
+    <div class="modal-title">📥 Paste Code Manually</div>
+    <div class="modal-sub">If the backend is offline, paste HTML code here directly.</div>
+    <textarea id="paste-area" placeholder="Paste full <!DOCTYPE html> code here…"></textarea>
+    <button class="btn-primary" onclick="injectCode()">⚡ Inject & Preview</button>
+    <button class="btn-secondary" onclick="closeModal('paste-modal')">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════
+const DEFAULT_SERVER = 'http://localhost:3000';
+
+const S = {
+  view: 'dashboard',
+  projects: [],
+  files: { 'index.html': '', 'style.css': '', 'script.js': '' },
+  activeFile: 'index.html',
+  activeTab: 'chat',
+  activeProject: null,
+  sidebarOpen: true,
+  generating: false,
+  chatHistory: [],
+};
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+function boot() {
+  loadProjects();
+  renderGrid();
+  updateStats();
+  document.getElementById('server-url').value = localStorage.getItem('forge_server') || DEFAULT_SERVER;
+  checkConnection();
+
+  // Auto-resize textareas
+  ['quick-input', 'chat-input'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => resize(el));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        id === 'quick-input' ? quickForge() : send();
+      }
+    });
+  });
+
+  // Mobile keyboard viewport fix
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      const bar = document.getElementById('chat-bar');
+      if (bar && S.view === 'workspace') {
+        const gap = window.innerHeight - window.visualViewport.height;
+        bar.style.transform = `translateY(-${gap}px)`;
+      }
+    });
+  }
+
+  document.getElementById('chat-input').addEventListener('focus', () => {
+    setTimeout(() => document.getElementById('chat-bar')?.scrollIntoView({ block: 'end', behavior: 'smooth' }), 280);
+  });
+
+  renderFileSidebar();
+}
+
+function resize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 130) + 'px';
+}
+
+// ══════════════════════════════════════════════
+//  CONNECTION CHECK
+// ══════════════════════════════════════════════
+async function checkConnection() {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  const url  = (localStorage.getItem('forge_server') || DEFAULT_SERVER) + '/health';
+
+  dot.className = 'dot checking'; text.textContent = 'Checking...';
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      const data = await r.json().catch(() => ({}));
+      dot.className = 'dot online';
+      text.textContent = `Online · ${data.model || 'AI Ready'}`;
+    } else {
+      throw new Error();
+    }
+  } catch {
+    dot.className = 'dot offline';
+    text.textContent = 'Server offline';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  VIEWS
+// ══════════════════════════════════════════════
+function setView(name) {
+  document.getElementById('dashboard').classList.toggle('hidden', name !== 'dashboard');
+  document.getElementById('workspace').classList.toggle('hidden', name !== 'workspace');
+  S.view = name;
+}
+function goHome() {
+  setView('dashboard');
+  loadProjects(); renderGrid(); updateStats();
+}
+function focusInput() { document.getElementById('quick-input').focus(); }
+
+// ══════════════════════════════════════════════
+//  PROJECTS
+// ══════════════════════════════════════════════
+function loadProjects() {
+  S.projects = JSON.parse(localStorage.getItem('forge_projects') || '[]');
+}
+function saveProjects() {
+  localStorage.setItem('forge_projects', JSON.stringify(S.projects));
+}
+function updateStats() {
+  document.getElementById('stat-p').textContent = S.projects.length;
+  const lines = S.projects.reduce((a, p) => a + Object.values(p.files || {}).join('\n').split('\n').length, 0);
+  document.getElementById('stat-l').textContent = lines > 999 ? (lines / 1000).toFixed(1) + 'k' : lines;
+}
+function guessType(p) {
+  const s = p.toLowerCase();
+  if (/game|snake|shoot|puzzle/.test(s)) return 'Game';
+  if (/dash|chart|analytic/.test(s)) return 'Dashboard';
+  if (/portfolio|landing|page/.test(s)) return 'Landing';
+  if (/3d|three/.test(s)) return '3D';
+  return 'App';
+}
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+}
+function fmtSize(n) {
+  return n > 1024 ? (n / 1024).toFixed(1) + 'kb' : n + 'b';
+}
+
+function renderGrid() {
+  const grid = document.getElementById('project-grid');
+  const base = `<div class="new-card" onclick="focusInput()">
+    <div class="new-icon">+</div>
+    <div class="new-card-label">New Project</div>
+    <div class="new-card-sub">Type an idea above</div>
+  </div>`;
+
+  grid.innerHTML = base + [...S.projects].reverse().map((p, ri) => {
+    const idx = S.projects.length - 1 - ri;
+    const sz = fmtSize(Object.values(p.files || {}).join('').length);
+    return `<div class="proj-card" onclick="openProject(${idx})">
+      <div class="proj-badge">⚡ ${p.type || 'App'}</div>
+      <div class="proj-name">${esc(p.name)}</div>
+      <div class="proj-desc">${esc((p.prompt || '').substring(0, 80))}${p.prompt?.length > 80 ? '…' : ''}</div>
+      <div class="proj-meta">
+        <span>📅 ${fmtDate(p.created)} · 💾 ${sz}</span>
+        <button class="btn-sm" onclick="event.stopPropagation();openProject(${idx})">Open →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProject(idx) {
+  const p = S.projects[idx];
+  S.activeProject = idx;
+  S.files = { ...p.files };
+  S.chatHistory = p.chatHistory || [];
+  document.getElementById('ws-title').textContent = p.name;
+  renderFileSidebar();
+  renderChatHistory();
+  switchTab('chat');
+  setView('workspace');
+}
+
+function newProject(prompt) {
+  const name = prompt.length > 42 ? prompt.slice(0, 42) + '…' : prompt;
+  const p = {
+    id: Date.now(), name, prompt,
+    type: guessType(prompt),
+    created: new Date().toISOString(),
+    files: { 'index.html': '', 'style.css': '', 'script.js': '' },
+    chatHistory: [],
+  };
+  S.projects.push(p);
+  saveProjects();
+  return S.projects.length - 1;
+}
+
+// ══════════════════════════════════════════════
+//  QUICK FORGE
+// ══════════════════════════════════════════════
+function quickForge() {
+  const el = document.getElementById('quick-input');
+  const prompt = el.value.trim();
+  if (!prompt) { el.focus(); return; }
+
+  const idx = newProject(prompt);
+  S.activeProject = idx;
+  S.files = { ...S.projects[idx].files };
+  S.chatHistory = [];
+  document.getElementById('ws-title').textContent = S.projects[idx].name;
+  renderFileSidebar();
+  clearChat();
+  switchTab('chat');
+  setView('workspace');
+
+  el.value = ''; el.style.height = 'auto';
+  setTimeout(() => generate(prompt), 60);
+}
+
+function chip(text) {
+  const el = document.getElementById('quick-input');
+  el.value = text; resize(el); el.focus();
+}
+
+// ══════════════════════════════════════════════
+//  WORKSPACE
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+  S.activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('chat-panel').classList.toggle('hidden', tab !== 'chat');
+  document.getElementById('code-panel').classList.toggle('visible', tab === 'code');
+  document.getElementById('preview-panel').classList.toggle('visible', tab === 'preview');
+  if (tab === 'code') renderCode();
+  if (tab === 'preview') renderPreview();
+}
+
+function toggleSidebar() {
+  S.sidebarOpen = !S.sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('closed', !S.sidebarOpen);
+}
+
+function renderFileSidebar() {
+  const icons = { 'index.html': '🌐', 'style.css': '🎨', 'script.js': '⚡' };
+  document.getElementById('file-list').innerHTML = Object.keys(S.files).map(f => `
+    <div class="file-row ${f === S.activeFile ? 'active' : ''}" onclick="pickFile('${f}')">
+      <span>${icons[f] || '📄'}</span>
+      <span>${f}</span>
+      <span class="file-sz">${S.files[f].length ? fmtSize(S.files[f].length) : ''}</span>
+    </div>`).join('');
+}
+
+function pickFile(f) {
+  S.activeFile = f;
+  renderFileSidebar();
+  switchTab('code');
+}
+
+// ══════════════════════════════════════════════
+//  CODE VIEW
+// ══════════════════════════════════════════════
+function renderCode() {
+  const code = S.files[S.activeFile] || '';
+  const view = document.getElementById('code-view');
+  if (!code) {
+    view.innerHTML = `<span style="color:var(--text-dim);font-family:var(--font);font-size:.84rem;display:block;text-align:center;padding-top:60px;">${S.activeFile} is empty.</span>`;
+    return;
+  }
+  const lang = { html:'html', css:'css', js:'javascript' }[S.activeFile.split('.').pop()] || 'text';
+  const safe = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  view.innerHTML = `<pre><code class="language-${lang}">${safe}</code></pre>`;
+  if (window.hljs) view.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+}
+
+function copyCode() {
+  const c = S.files[S.activeFile] || '';
+  if (!c) { toast('Nothing to copy', false); return; }
+  navigator.clipboard.writeText(c).then(() => toast('Copied! ✓', true));
+}
+
+// ══════════════════════════════════════════════
+//  PREVIEW
+// ══════════════════════════════════════════════
+function buildHTML() {
+  const h = S.files['index.html'];
+  if (!h) return null;
+  if (/<!doctype|<html/i.test(h)) return h;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>${S.files['style.css']}</style></head><body>${h}<script>${S.files['script.js']}<\/script></body></html>`;
+}
+
+function renderPreview() {
+  const html = buildHTML();
+  if (!html) return;
+  const frame = document.getElementById('preview-frame');
+  const empty = document.getElementById('preview-empty');
+  frame.style.display = 'block'; empty.style.display = 'none';
+  document.getElementById('preview-url').textContent = 'forge://preview';
+  frame.srcdoc = html;
+}
+
+function openTab() {
+  const html = buildHTML();
+  if (!html) { toast('Generate code first', false); return; }
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  const t = window.open(url, '_blank');
+  if (!t) { toast('Allow popups in browser', false); return; }
+  toast('Opened in new tab 🚀', true);
+  setTimeout(() => URL.revokeObjectURL(url), 12000);
+}
+
+// ══════════════════════════════════════════════
+//  CHAT
+// ══════════════════════════════════════════════
+function renderChatHistory() {
+  document.getElementById('chat-panel').innerHTML = '';
+  (S.chatHistory || []).forEach(m => addBubble(m.role, m.text, false));
+}
+function clearChat() {
+  document.getElementById('chat-panel').innerHTML = '';
+  S.chatHistory = [];
+}
+function addBubble(role, text, save = true) {
+  const panel = document.getElementById('chat-panel');
+  const time = new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = `bubble-wrap ${role}`;
+  div.innerHTML = `<div class="bubble">${esc(text)}</div><div class="bubble-time">${time}</div>`;
+  panel.appendChild(div);
+  panel.scrollTop = panel.scrollHeight;
+  if (save) {
+    S.chatHistory.push({ role, text });
+    if (S.activeProject !== null) {
+      S.projects[S.activeProject].chatHistory = S.chatHistory;
+      saveProjects();
+    }
+  }
+}
+function showDots() {
+  const panel = document.getElementById('chat-panel');
+  const d = document.createElement('div');
+  d.className = 'bubble-wrap ai'; d.id = 'dots';
+  d.innerHTML = `<div class="bubble"><div class="dots"><span></span><span></span><span></span></div></div>`;
+  panel.appendChild(d); panel.scrollTop = panel.scrollHeight;
+}
+function removeDots() { document.getElementById('dots')?.remove(); }
+
+function send() {
+  const el = document.getElementById('chat-input');
+  const text = el.value.trim();
+  if (!text || S.generating) return;
+  addBubble('user', text);
+  el.value = ''; el.style.height = 'auto';
+  generate(text);
+}
+
+// ══════════════════════════════════════════════
+//  AI GENERATION — POST to backend
+// ══════════════════════════════════════════════
+async function generate(prompt) {
+  S.generating = true;
+  document.getElementById('send-btn').disabled = true;
+  showDots();
+  setProgress(true);
+
+  const steps = [
+    { pct: 10, label: '🔍 Analyzing prompt…',    sub: 'Understanding your request' },
+    { pct: 25, label: '🏗 Scaffolding layout…',  sub: 'Designing component structure' },
+    { pct: 45, label: '⚡ Wiring JS logic…',     sub: 'Building interactivity' },
+    { pct: 63, label: '🎨 Applying styles…',     sub: 'Adding visual polish' },
+    { pct: 80, label: '✨ Refining output…',     sub: 'Optimizing code quality' },
+    { pct: 92, label: '🔗 Finalizing…',          sub: 'Almost ready!' },
+  ];
+
+  let si = 0;
+  const ticker = setInterval(() => {
+    if (si < steps.length) {
+      const s = steps[si++];
+      setProgressState(s.pct, s.label, s.sub);
+    }
+  }, 600);
+
+  const serverUrl = (localStorage.getItem('forge_server') || DEFAULT_SERVER) + '/api/forge';
+
+  try {
+    const context = S.chatHistory.length > 3
+      ? `Previous project: "${S.projects[S.activeProject]?.name}". Now update/refine: `
+      : '';
+
+    const res = await fetch(serverUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: context + prompt }),
+      signal: AbortSignal.timeout(90000),
+    });
+
+    clearInterval(ticker);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const code = data.code;
+
+    if (!code || code.length < 80) throw new Error('Server returned empty or too-short code.');
+
+    setProgressState(100, '✅ Done!', 'Code generated successfully');
+    await wait(500);
+    setProgress(false);
+
+    S.files['index.html'] = extractHTML(code);
+    S.files['style.css'] = '';
+    S.files['script.js'] = '';
+
+    if (S.activeProject !== null) {
+      S.projects[S.activeProject].files = { ...S.files };
+      saveProjects();
+    }
+
+    renderFileSidebar();
+    removeDots();
+    addBubble('ai', `✅ Done! Generated ${S.files['index.html'].split('\n').length} lines.\n\n👉 Tap Preview → Open Tab for full-screen! 🚀`);
+
+  } catch (err) {
+    clearInterval(ticker);
+    setProgress(false);
+    removeDots();
+
+    console.error('Generation error:', err);
+
+    let msg = `❌ ${err.message}`;
+    if (err.message.includes('Failed to fetch') || err.message.includes('fetch')) {
+      msg = `🔌 Cannot reach the backend server.\n\nMake sure:\n• server.js is running (node server.js)\n• URL in Settings is correct\n• Port 3000 is not blocked\n\nOr tap "📥 Paste Code" to manually paste from Claude.`;
+    } else if (err.message.includes('timeout') || err.name === 'TimeoutError') {
+      msg = '⏳ Request timed out. The AI is slow right now — try again.';
+    }
+
+    addBubble('ai', msg);
+
+    // Show paste fallback
+    addBubble('ai', `💡 Alternatively: send your prompt to Claude in the chat above, then paste the returned HTML using the button below.`);
+    showPasteBtn();
+  }
+
+  S.generating = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+function showPasteBtn() {
+  const panel = document.getElementById('chat-panel');
+  const wrap = document.createElement('div');
+  wrap.className = 'bubble-wrap ai';
+  wrap.innerHTML = `
+    <button onclick="openModal('paste-modal')" style="
+      padding:11px 20px; border-radius:11px;
+      background:var(--pink); border:none; color:white;
+      font-family:var(--font); font-size:.83rem; font-weight:700;
+      cursor:pointer; box-shadow:0 0 16px var(--pink-glow);
+      display:flex; align-items:center; gap:7px; transition:all .18s;
+    " onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      📥 Paste Code Manually
+    </button>`;
+  panel.appendChild(wrap);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+// ══════════════════════════════════════════════
+//  PROGRESS
+// ══════════════════════════════════════════════
+function setProgress(show) {
+  document.getElementById('progress-overlay').classList.toggle('on', show);
+  if (!show) {
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-pct').textContent = '0%';
+    document.getElementById('progress-label').textContent = 'Initializing...';
+    document.getElementById('progress-sub').textContent = '';
+  }
+}
+function setProgressState(pct, label, sub = '') {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+  document.getElementById('progress-sub').textContent = sub;
+}
+
+// ══════════════════════════════════════════════
+//  PASTE CODE FALLBACK
+// ══════════════════════════════════════════════
+function injectCode() {
+  const raw = document.getElementById('paste-area').value.trim();
+  if (!raw || raw.length < 50) { toast('Paste valid HTML code first', false); return; }
+
+  S.files['index.html'] = extractHTML(raw);
+  S.files['style.css'] = '';
+  S.files['script.js'] = '';
+
+  if (S.activeProject !== null) {
+    S.projects[S.activeProject].files = { ...S.files };
+    saveProjects();
+  }
+
+  document.getElementById('paste-area').value = '';
+  closeModal('paste-modal');
+  renderFileSidebar();
+  addBubble('ai', `✅ Code injected! ${S.files['index.html'].split('\n').length} lines loaded.\n\n👉 Switch to Preview tab!`);
+  toast('Code loaded!', true);
+  setTimeout(() => switchTab('preview'), 700);
+}
+
+// ══════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════
+function saveSettings() {
+  const url = document.getElementById('server-url').value.trim().replace(/\/$/, '');
+  if (!url) { toast('Enter a valid URL', false); return; }
+  localStorage.setItem('forge_server', url);
+  closeModal('settings-modal');
+  toast('Saved! Testing connection…', true);
+  checkConnection();
+}
+
+// ══════════════════════════════════════════════
+//  MODALS & TOAST
+// ══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show${ok ? ' ok' : ''}`;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function esc(s = '') {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+}
+
+function extractHTML(raw) {
+  let s = raw.replace(/^```html\s*/im, '').replace(/^```\s*/im, '').replace(/\s*```$/im, '').trim();
+  if (/^<!doctype|^<html/i.test(s)) return s;
+  const m = raw.match(/<!DOCTYPE html[\s\S]*?(?=```|$)/i) || raw.match(/<html[\s\S]*?<\/html>/i);
+  return m ? m[0].trim() : s;
+}
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+boot();
+</script>
+</body>
+</html>
